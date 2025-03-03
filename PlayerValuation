@@ -1,0 +1,36 @@
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(car)
+library(lmtest)
+library(sandwich)
+library(stargazer)
+
+# Data Cleaning
+f_players <- read.csv("fifa_players.csv")
+map_positions <- function(position) {
+  case_position <- switch(position,GK = 1,CB = 2,RCB = 2,LCB = 2,RB = 2,RWB = 2,
+                          LB = 2,LWB = 2,RWB=2,RM = 3,CM = 3,LM= 3,RM=3,
+                          CDM = 3,RW = 4,CAM = 4,LW = 4,ST = 4,CF = 4,0)
+  return(case_position)
+}
+
+positions_list <- strsplit(f_players$positions, ",")
+mapped_positions <- lapply(positions_list, function(pos) sapply(pos, map_positions))
+most_frequent_positions <- sapply(mapped_positions, function(player_positions) {
+  table_player <- table(player_positions)
+  mode_position <- as.numeric(names(table_player)[which.max(table_player)])
+  return(mode_position)
+})
+
+f_players$most_frequent_position <- most_frequent_positions
+f_players$body_type_numeric <- ifelse(f_players$body_type == "Lean", 1,
+                                      ifelse(f_players$body_type == "Normal", 2,
+                                             ifelse(f_players$body_type == "Stocky", 3,0)))
+f_players$value_euro<- as.integer(f_players$value_euro)
+write.csv(f_players, "f_players_updated.csv", row.names = FALSE)
+
+position_counts <- table(f_players$most_frequent_position)
+pie(position_counts, labels = c("Goalkeeper", "Defender", "Midfielder", "Attacker"), col = rainbow(length(position_counts)))
+title("Distribution of Most Frequent Positions")
