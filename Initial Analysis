@@ -1,0 +1,74 @@
+f_players_filtered <- subset(f_players, select = c(overall_rating, value_euro, potential,body_type_numeric,most_frequent_position))
+f_players_filtered <-na.omit(f_players_filtered)
+
+body_counts <- table(f_players$body_type_numeric)
+pie(position_counts, labels = c(".","Lean", "Normal", "Stocky"), col = rainbow(length(body_counts)))
+title("Distribution of Types of players with different Body Types")
+
+
+correlation_df <- cor(f_players_filtered)
+correlation_df  
+
+corrplot(correlation_df, method = "color", type = "full", tl.cex = 0.7)
+
+
+lm_1 <- lm(value_euro ~ body_type_numeric, data = f_players_filtered)
+summary(lm_1)
+  
+lm_2 <- lm(value_euro ~ overall_rating, data = f_players_filtered)
+summary(lm_2)
+
+lm_3 <- lm(value_euro ~ potential, data = f_players_filtered)
+summary(lm_3)
+
+lm_4 <- lm(value_euro ~ most_frequent_position, data = f_players_filtered)
+summary(lm_4)
+
+model_list <- list(lm_1, lm_2, lm_3, lm_4)
+stargazer(model_list, title = "Regression Models Summary", type = "text")
+plot(lm_1)
+plot(lm_2)
+plot(lm_3)
+plot(lm_4)
+
+
+bptest(lm_1)
+bptest(lm_2)
+bptest(lm_3)
+bptest(lm_4)
+
+calculate_robust_se <- function(model) {
+  robust_se <- sqrt(diag(vcovHC(model)))
+  return(robust_se)
+}
+
+calculate_95_ci <- function(model, robust_se) {
+  coef_values <- coef(model)
+  lower_ci <- coef_values - 1.96 * robust_se
+  upper_ci <- coef_values + 1.96 * robust_se
+  
+  ci_matrix <- cbind(lower_ci, upper_ci)
+  return(ci_matrix)
+}
+
+rse_vvsb <- calculate_robust_se(lm_1)
+rse_vvsor <- calculate_robust_se(lm_2)
+rse_vvsp <- calculate_robust_se(lm_3)
+rse_vvspos <- calculate_robust_se(lm_4)
+
+ci_vvsb <- calculate_95_ci(lm_1,rse_vvsb)
+ci_vvsor <- calculate_95_ci(lm_2,rse_vvsor)
+ci_vvsp <- calculate_95_ci(lm_3,rse_vvsp)
+ci_vvspos <- calculate_95_ci(lm_3,rse_vvspos)
+
+print("confidence interval for a linear regression model betwwen vaule and body type/n")
+print(ci_vvsb)
+
+print("confidence interval for a linear regression model betwwen vaule and overall rating/n")
+print(ci_vvsor)
+
+print("confidence interval for a linear regression model betwwen vaule and potential/n")
+print(ci_vvsp)
+
+print("confidence interval for a linear regression model betwwen vaule and position/n")
+print(ci_vvspos)
